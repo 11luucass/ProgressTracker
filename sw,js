@@ -1,0 +1,35 @@
+const CACHE_NAME = 'progress-tracker-v1';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json'
+];
+
+// Instalación: guardar archivos esenciales en la memoria caché
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
+  self.skipWaiting();
+});
+
+// Activación: limpiar cachés antiguas si fuera necesario
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) return caches.delete(key);
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Interceptar peticiones para que la app funcione sin conexión a internet
+self.addEventListener('fetch', (e) => {
+  e.respondWith(
+    caches.match(e.request).then((response) => response || fetch(e.request))
+  );
+});
