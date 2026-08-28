@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Progress Tracker</title>
-    
+    <!-- Configuraciones PWA y compatibilidad con iOS / Safari -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007aff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Progress Tracker">
+    <link rel="apple-touch-icon" href="https://github.com/11luucass/ProgressTracker/blob/main/icon-192.png?v=2">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -984,9 +990,16 @@
 
         // --- ARRANQUE DE LA APLICACIÓN ---
         window.onload = function() {
+            // Registrar Service Worker para soporte PWA y modo Offline
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('Service Worker registrado con éxito'))
+                    .catch(err => console.log('Error al registrar Service Worker:', err));
+            }
+
             cargarDatos();
             establecerFechaHoyInput();
-            procesarDiasPendientes(); // Este bucle genera el historial y actualiza las tareas caducadas automáticamente
+            procesarDiasPendientes();
             renderizarHeatmap30Dias();
             renderizarApp();
         };
