@@ -101,10 +101,19 @@
             font-size: 10px; color: transparent; cursor: pointer; transition: transform 0.1s;
         }
         .dia-square:active { transform: scale(0.9); }
-        .nivel-0 { background-color: #ebedf0; }
-        .nivel-bajo { background-color: #c6e48b; }
-        .nivel-medio{ background-color: #7bc96f; }
-        .nivel-alto { background-color: #239a3b; }
+        /* Escala de 12 niveles para mapas de calor */
+        .nivel-vacio { background-color: #ebedf0; } /* Sin datos */
+        .nivel-0 { background-color: #d7191c; }     /* 0% - 9% (Rojo intenso) */
+        .nivel-10 { background-color: #ed5151; }    /* 10% - 19% (Rojo claro) */
+        .nivel-20 { background-color: #ff7545; }    /* 20% - 29% (Rojo anaranjado) */
+        .nivel-30 { background-color: #ff9900; }    /* 30% - 39% (Naranja) */
+        .nivel-40 { background-color: #ffb800; }    /* 40% - 49% (Naranja amarillento) */
+        .nivel-50 { background-color: #ffcc00; }    /* 50% - 59% (Amarillo) */
+        .nivel-60 { background-color: #d4d918; }    /* 60% - 69% (Amarillo verdoso) */
+        .nivel-70 { background-color: #a0c814; }    /* 70% - 79% (Verde lima) */
+        .nivel-80 { background-color: #34c759; }    /* 80% - 89% (Verde claro iOS) */
+        .nivel-90 { background-color: #28a745; }    /* 90% - 99% (Verde medio) */
+        .nivel-100 { background-color: #118a2e; }   /* 100% (Verde oscuro perfecto) */
         
         .btn-historial-completo {
             background: transparent; border: 1px solid #007aff; color: #007aff;
@@ -752,21 +761,70 @@
                 porcentaje = Math.round((completados / total) * 100);
             }
 
-            document.getElementById('progreso-barra').style.width = `${porcentaje}%`;
-            document.getElementById('progreso-texto').innerText = `${porcentaje}% Completado`;
+            // 1. Determinar texto y color según la escala de 12 niveles
+            let texto = "Añade objetivos para empezar tu día.";
+            let color = "#888888";
 
-            document.getElementById('resumen-circulo').style.background = `conic-gradient(#34c759 ${porcentaje}%, #e5e5ea ${porcentaje}%)`;
-            document.getElementById('resumen-texto-porcentaje').innerText = `${porcentaje}%`;
-            document.getElementById('resumen-texto-contador').innerText = `${completados} / ${total} completados`;
-
-            let frase = "Añade objetivos activos para ver tu progreso.";
             if (total > 0) {
-                if (porcentaje === 0) frase = "¡Un nuevo ciclo! Empieza con energía.";
-                else if (porcentaje < 50) frase = "¡Buen trabajo! Cada pequeño paso cuenta.";
-                else if (porcentaje < 100) frase = "¡Ya casi lo tienes! Sigue así, no te rindas.";
-                else frase = "¡Increíble! Has completado todas tus metas.";
+                if (porcentaje === 100) {
+                    texto = "¡Día perfecto! Has cumplido todo.";
+                    color = "#118a2e";
+                } else if (porcentaje >= 90) {
+                    texto = "¡Casi perfecto! Un último esfuerzo.";
+                    color = "#28a745";
+                } else if (porcentaje >= 80) {
+                    texto = "¡Excelente! Día muy productivo.";
+                    color = "#34c759";
+                } else if (porcentaje >= 70) {
+                    texto = "¡Muy bien! Llevas un gran ritmo.";
+                    color = "#a0c814";
+                } else if (porcentaje >= 60) {
+                    texto = "Buen trabajo, sigue avanzando.";
+                    color = "#d4d918";
+                } else if (porcentaje >= 50) {
+                    texto = "¡Ecuador del día superado!";
+                    color = "#ffcc00";
+                } else if (porcentaje >= 40) {
+                    texto = "Casi a la mitad, ¡tú puedes!";
+                    color = "#ffb800";
+                } else if (porcentaje >= 30) {
+                    texto = "Estás cogiendo ritmo, no pares.";
+                    color = "#ff9900";
+                } else if (porcentaje >= 20) {
+                    texto = "Paso a paso, vas por buen camino.";
+                    color = "#ff7545";
+                } else if (porcentaje >= 10) {
+                    texto = "Has dado el primer paso, ¡sigue así!";
+                    color = "#ed5151";
+                } else {
+                    texto = "Aún a tiempo de arrancar. ¡A por ello!";
+                    color = "#d7191c";
+                }
             }
-            document.getElementById('frase-texto').innerText = frase;
+
+            // 2. Actualizar barra de progreso lineal
+            const elemBarra = document.getElementById('progreso-barra');
+            if (elemBarra) elemBarra.style.width = `${porcentaje}%`;
+
+            const elemProgTexto = document.getElementById('progreso-texto');
+            if (elemProgTexto) elemProgTexto.innerText = `${porcentaje}% Completado`;
+
+            // 3. Actualizar la ruleta circular (aplicando el color dinámico)
+            const elemCirculo = document.getElementById('resumen-circulo');
+            if (elemCirculo) elemCirculo.style.background = `conic-gradient(${color} ${porcentaje}%, #e5e5ea ${porcentaje}%)`;
+
+            const elemPorcentaje = document.getElementById('resumen-texto-porcentaje');
+            if (elemPorcentaje) elemPorcentaje.innerText = `${porcentaje}%`;
+
+            const elemContador = document.getElementById('resumen-texto-contador');
+            if (elemContador) elemContador.innerText = `${completados} / ${total} completados`;
+
+            // 4. Actualizar el mensaje debajo de la ruleta (texto y color)
+            const elemMensaje = document.getElementById('frase-texto') || document.getElementById('mensaje-progreso');
+            if (elemMensaje) {
+                elemMensaje.textContent = texto;
+                elemMensaje.style.color = color;
+            }
         }
 
         // --- MAPA DE CALOR E HISTORIAL ---
@@ -786,12 +844,20 @@
                 let fechaStr = obtenerFechaStr(d);
                 
                 let porcentaje = mapaHistorial[fechaStr];
-                let claseNivel = 'nivel-0';
+                let claseNivel = 'nivel-vacio';
 
                 if (porcentaje !== undefined) {
-                    if (porcentaje >= 90) claseNivel = 'nivel-alto';
-                    else if (porcentaje >= 50) claseNivel = 'nivel-medio';
-                    else if (porcentaje >= 0) claseNivel = 'nivel-bajo';
+                    if (porcentaje === 100) claseNivel = 'nivel-100';
+                    else if (porcentaje >= 90) claseNivel = 'nivel-90';
+                    else if (porcentaje >= 80) claseNivel = 'nivel-80';
+                    else if (porcentaje >= 70) claseNivel = 'nivel-70';
+                    else if (porcentaje >= 60) claseNivel = 'nivel-60';
+                    else if (porcentaje >= 50) claseNivel = 'nivel-50';
+                    else if (porcentaje >= 40) claseNivel = 'nivel-40';
+                    else if (porcentaje >= 30) claseNivel = 'nivel-30';
+                    else if (porcentaje >= 20) claseNivel = 'nivel-20';
+                    else if (porcentaje >= 10) claseNivel = 'nivel-10';
+                    else claseNivel = 'nivel-0';
                 }
 
                 let cuadrado = document.createElement('div');
@@ -815,12 +881,20 @@
                 d.setDate(d.getDate() - i);
                 let fechaStr = obtenerFechaStr(d);
                 let porcentaje = mapaHistorial[fechaStr];
-                let claseNivel = 'nivel-0';
+                let claseNivel = 'nivel-vacio';
 
                 if (porcentaje !== undefined) {
-                    if (porcentaje >= 90) claseNivel = 'nivel-alto';
-                    else if (porcentaje >= 50) claseNivel = 'nivel-medio';
-                    else if (porcentaje >= 0) claseNivel = 'nivel-bajo';
+                    if (porcentaje === 100) claseNivel = 'nivel-100';
+                    else if (porcentaje >= 90) claseNivel = 'nivel-90';
+                    else if (porcentaje >= 80) claseNivel = 'nivel-80';
+                    else if (porcentaje >= 70) claseNivel = 'nivel-70';
+                    else if (porcentaje >= 60) claseNivel = 'nivel-60';
+                    else if (porcentaje >= 50) claseNivel = 'nivel-50';
+                    else if (porcentaje >= 40) claseNivel = 'nivel-40';
+                    else if (porcentaje >= 30) claseNivel = 'nivel-30';
+                    else if (porcentaje >= 20) claseNivel = 'nivel-20';
+                    else if (porcentaje >= 10) claseNivel = 'nivel-10';
+                    else claseNivel = 'nivel-0';
                 }
 
                 let cuadrado = document.createElement('div');
@@ -840,29 +914,65 @@
             if (historial.length === 0) return;
 
             // Cogemos el último día registrado (ayer)
-            const datosAyer = historial[historial.length - 1]; 
-            
+            const datosAyer = historial[historial.length - 1];
+
             // Formatear la fecha para que quede bonita
             document.getElementById('texto-fecha-ayer').innerText = `Día cerrado: ${datosAyer.fecha}`;
-            
+
             const porcentaje = datosAyer.porcentaje || 0;
             const completados = datosAyer.completados || 0;
             const total = datosAyer.total || 0;
 
-            // Pintar la ruleta
-            document.getElementById('ayer-circulo').style.background = `conic-gradient(#34c759 ${porcentaje}%, #e5e5ea ${porcentaje}%)`;
+            // Frase y color dinámico según la escala de 12 niveles
+            let frase = "Ayer no tenías objetivos activos.";
+            let color = "#888888";
+
+            if (total > 0) {
+                if (porcentaje === 100) {
+                    frase = "¡Día impecable! Cerraste todos tus objetivos.";
+                    color = "#118a2e";
+                } else if (porcentaje >= 90) {
+                    frase = "¡Rozaste la perfección! Una jornada casi impecable.";
+                    color = "#28a745";
+                } else if (porcentaje >= 80) {
+                    frase = "¡Estuviste muy cerca! Gran esfuerzo ayer.";
+                    color = "#34c759";
+                } else if (porcentaje >= 70) {
+                    frase = "Muy buen trabajo. Mantuviste un ritmo constante.";
+                    color = "#a0c814";
+                } else if (porcentaje >= 60) {
+                    frase = "Buen balance. Superaste con éxito más de la mitad.";
+                    color = "#d4d918";
+                } else if (porcentaje >= 50) {
+                    frase = "Hiciste parte del trabajo. Cumpliste justo la mitad.";
+                    color = "#ffcc00";
+                } else if (porcentaje >= 40) {
+                    frase = "Te faltó un poco para la mitad, pero sumaste progreso.";
+                    color = "#ffb800";
+                } else if (porcentaje >= 30) {
+                    frase = "Completaste algunos logros. ¡Hoy se puede apretar más!";
+                    color = "#ff9900";
+                } else if (porcentaje >= 20) {
+                    frase = "Día algo flojo ayer, pero al menos diste pasos.";
+                    color = "#ff7545";
+                } else if (porcentaje >= 10) {
+                    frase = "Apenas pudiste avanzar. ¡Hoy es borrón y cuenta nueva!";
+                    color = "#ed5151";
+                } else {
+                    frase = "Ayer fue un día de descanso (o de olvido). ¡Hoy a tope!";
+                    color = "#d7191c";
+                }
+            }
+
+            // Pintar la ruleta con el color correspondiente
+            document.getElementById('ayer-circulo').style.background = `conic-gradient(${color} ${porcentaje}%, #e5e5ea ${porcentaje}%)`;
             document.getElementById('ayer-texto-porcentaje').innerText = `${porcentaje}%`;
             document.getElementById('ayer-texto-contador').innerText = `${completados} / ${total} completados`;
 
-            // Frase dinámica según cómo fue el día
-            let frase = "Ayer no tenías objetivos activos.";
-            if (total > 0) {
-                if (porcentaje === 0) frase = "Ayer fue un día de descanso (o de olvido). ¡Hoy a tope!";
-                else if (porcentaje < 50) frase = "Hiciste parte del trabajo. ¡Hoy a mejorarlo!";
-                else if (porcentaje < 100) frase = "¡Estuviste muy cerca! Gran esfuerzo.";
-                else frase = "¡Día perfecto! Cerraste todos tus objetivos.";
-            }
-            document.getElementById('ayer-frase-texto').innerText = frase;
+            // Aplicar la frase y su color
+            const elemFrase = document.getElementById('ayer-frase-texto');
+            elemFrase.innerText = frase;
+            elemFrase.style.color = color;
 
             // Mostrar el modal
             document.getElementById('modal-resumen-ayer').style.display = 'block';
