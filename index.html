@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Tracker</title>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 80px; 
+            max-width: 420px; 
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h1, h2 { text-align: center; color: #1c1c1e; }
+        section {
+            background-color: #ffffff; padding: 20px; border-radius: 15px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px;
+        }
+        input[type="text"], input[type="number"], input[type="date"], select {
+            width: 100%; padding: 12px; margin-top: 5px; margin-bottom: 15px;
+            border: 1px solid #d1d1d6; border-radius: 10px; box-sizing: border-box; font-size: 16px;
+        }
+        .input-pequeno { width: 75px !important; display: inline-block; margin-bottom: 0; margin-right: 5px; padding: 8px !important; }
+        .bloque-personalizado { display: flex; gap: 8px; margin-bottom: 15px; }
+        .columna-tiempo { flex: 1; text-align: center; }
+        .columna-tiempo input { margin-bottom: 0; text-align: center; }
+        .columna-tiempo label { font-size: 12px; color: #8e8e93; display: block; margin-top: 2px; }
+        .btn-principal { background-color: #007aff; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-principal:hover { background-color: #0056b3; }
+        
+        .btn-debug { background-color: #ff9500; color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+        .btn-debug:hover { background-color: #e08500; }
+
+        ul { list-style-type: none; padding: 0; margin: 0; }
+        li { border-bottom: 1px solid #eee; padding: 15px 0; }
+        li:last-child { border-bottom: none; }
+        .texto-gris { color: #8e8e93; font-size: 14px; }
+        .texto-rojo { color: #ff3b30; font-size: 12px; font-weight: bold;}
+        .texto-naranja { color: #ff9500; font-size: 12px; font-weight: bold;}
+        .texto-verde { color: #34c759; font-size: 12px;}
+        .btn-accion { background-color: #007aff; color: white; border: none; padding: 8px 12px; border-radius: 8px; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-restar { background-color: #ff3b30; }
+        .btn-eliminar { background-color: #8e8e93; float: right; padding: 6px 10px; font-size: 12px; margin-top: 0; }
+        .btn-eliminar:hover { background-color: #636366; }
+        .contenedor-controles { display: flex; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+
+        .vista { display: none; }
+        .vista.activa { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .nav-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            background-color: #ffffff; border-top: 1px solid #d1d1d6;
+            display: flex; justify-content: space-around; padding: 10px 0;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            z-index: 1000;
+        }
+        .nav-btn {
+            background: none; border: none; font-size: 12px; color: #8e8e93;
+            display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;
+        }
+        .nav-btn.activo { color: #007aff; font-weight: bold; }
+        .nav-icon { font-size: 24px; }
+
+        .contenedor-barra { width: 100%; background-color: #e5e5ea; border-radius: 10px; height: 15px; overflow: hidden; margin: 15px 0; }
+        .barra-relleno { height: 100%; background-color: #34c759; width: 0%; transition: width 0.4s ease; }
+        .texto-porcentaje { text-align: center; font-weight: bold; font-size: 18px; color: #1c1c1e; }
+        
+        .contenedor-circulo { text-align: center; margin-top: 20px; }
+        .circulo-progreso {
+            width: 160px; height: 160px; border-radius: 50%;
+            background: conic-gradient(#34c759 0%, #e5e5ea 0%);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 15px auto; transition: background 0.4s ease;
+        }
+        .circulo-interior {
+            width: 130px; height: 130px; border-radius: 50%;
+            background-color: #ffffff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .texto-porcentaje-grande { font-size: 32px; font-weight: bold; color: #1c1c1e; }
+        .texto-contador { font-size: 16px; color: #8e8e93; font-weight: bold; margin-bottom: 20px; }
+        .frase-motivacional { text-align: center; font-style: italic; color: #8e8e93; margin-top: 15px; padding: 15px; background: #f4f4f9; border-radius: 10px;}
+
+        /* --- NUEVO: ESTILOS MAPA DE CALOR (HISTORIAL) --- */
+        .resumen-historial-seccion { margin-top: 30px; }
+        .heatmap-grid {
+            display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px;
+            max-width: 320px; margin: 15px auto;
+        }
+        .dia-square {
+            width: 100%; aspect-ratio: 1; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: transparent; cursor: pointer; transition: transform 0.1s;
+        }
+        .dia-square:active { transform: scale(0.9); }
+        .nivel-0 { background-color: #ebedf0; }
+        .nivel-bajo { background-color: #c6e48b; }
+        .nivel-medio{ background-color: #7bc96f; }
+        .nivel-alto { background-color: #239a3b; }
+        
+        .btn-historial-completo {
+            background: transparent; border: 1px solid #007aff; color: #007aff;
+            padding: 8px 16px; border-radius: 20px; font-size: 14px; margin-top: 15px; cursor: pointer;
+        }
+        .btn-historial-completo:hover { background-color: #e5f0ff; }
+
+        /* Modal Historial Anual */
+        .modal {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); padding: 20px; box-sizing: border-box;
+        }
+        .modal-contenido {
+            background-color: #fff; margin: 10% auto; padding: 20px;
+            border-radius: 15px; max-width: 420px; position: relative; max-height: 80vh; overflow-y: auto;
+        }
+        .cerrar-modal {
+            position: absolute; right: 20px; top: 15px;
+            font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer;
+        }
+        .cerrar-modal:hover { color: #333; }
+        
+        .heatmap-grid-ano {
+            display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="vista-resumen" class="vista">
+        <h1>Resumen de Hoy</h1>
+        <section class="contenedor-circulo">
+            <div class="circulo-progreso" id="resumen-circulo">
+                <div class="circulo-interior">
+                    <span class="texto-porcentaje-grande" id="resumen-texto-porcentaje">0%</span>
+                </div>
+            </div>
+            <div class="texto-contador" id="resumen-texto-contador">0 / 0 completados</div>
+            <div class="frase-motivacional" id="frase-texto">Añade objetivos activos para ver tu progreso.</div>
+        </section>
+
+        <section class="resumen-historial-seccion">
+            <h3 style="text-align:center; color:#1c1c1e; margin-bottom: 10px; font-size:18px;">Últimos 30 días cerrados</h3>
+            <div id="grid-30-dias" class="heatmap-grid"></div>
+            <div style="text-align:center;">
+                <button onclick="abrirModalHistorial()" class="btn-historial-completo">Ver año completo</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="modal-historial" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal" onclick="cerrarModalHistorial()">&times;</span>
+            <h2 style="text-align:center; margin-bottom: 20px;">Histórico del Último Año</h2>
+            <div id="grid-365-dias" class="heatmap-grid-ano"></div>
+        </div>
+    </div>
+
+    <!-- Modal Resumen de Ayer -->
+    <div id="modal-resumen-ayer" class="modal">
+        <div class="modal-contenido" style="text-align: center;">
+            <h2 style="margin-bottom: 5px;">Resumen de Ayer</h2>
+            <p class="texto-gris" id="texto-fecha-ayer" style="margin-top: 0; margin-bottom: 20px;"></p>
+            
+            <div class="contenedor-circulo" style="margin-top: 0;">
+                <div class="circulo-progreso" id="ayer-circulo">
+                    <div class="circulo-interior">
+                        <span class="texto-porcentaje-grande" id="ayer-texto-porcentaje">0%</span>
+                    </div>
+                </div>
+                <div class="texto-contador" id="ayer-texto-contador">0 / 0 completados</div>
+                <div class="frase-motivacional" id="ayer-frase-texto"></div>
+            </div>
+
+            <button class="btn-principal" style="margin-top: 20px;" onclick="cerrarResumenAyer()">Empezar mi día</button>
+        </div>
+    </div>
+
+    <div id="vista-progreso" class="vista activa">
+        <h1>Mis Objetivos</h1>
+        <section>
+            <button type="button" class="btn-debug" onclick="simularPasoDelTiempo()">⏳ Simular Avanzar 1 Día (+24h)</button>
+
+            <div class="texto-porcentaje" id="progreso-texto">0% Completado</div>
+            <div class="contenedor-barra"><div class="barra-relleno" id="progreso-barra"></div></div>
+            <ul id="lista-objetivos">
+                <li style="text-align:center; color:#8e8e93;">No hay objetivos. ¡Ve a "Nuevo" para empezar!</li>
+            </ul>
+        </section>
+    </div>
+
+    <div id="vista-nuevo" class="vista">
+        <h1>Añadir</h1>
+        <section>
+            <form id="form-objetivo">
+                <label for="nombre">¿Qué quieres lograr?</label>
+                <input type="text" id="nombre" placeholder="Ej. Estudiar, Beber agua..." required>
+
+                <label for="tipo">Tipo de objetivo:</label>
+                <select id="tipo" onchange="cambiarTipoObjetivo()">
+                    <option value="contador">Veces / Repeticiones</option>
+                    <option value="tiempo">Tiempo (minutos)</option>
+                    <option value="una_vez">Acción (Hecho / No hecho)</option>
+                </select>
+
+                <div id="caja-cantidad-meta">
+                    <label for="cantidad">Cantidad Meta (ej. 3 veces o 60 min):</label>
+                    <input type="number" id="cantidad" placeholder="Ej. 3 o 60" min="1" value="1">
+                </div>
+
+                <label for="frecuencia">Frecuencia:</label>
+                <select id="frecuencia" onchange="cambiarFrecuencia()">
+                    <option value="Diario">Diario</option>
+                    <option value="Semanal">Semanal</option>
+                    <option value="Personalizado">Plazo Personalizado</option>
+                </select>
+
+                <div id="caja-plazo-custom" style="display: none;">
+                    <label>Duración exacta del plazo:</label>
+                    <div class="bloque-personalizado">
+                        <div class="columna-tiempo"><input type="number" id="custom-meses" min="0" value="0"><label>Meses</label></div>
+                        <div class="columna-tiempo"><input type="number" id="custom-semanas" min="0" value="0"><label>Semanas</label></div>
+                        <div class="columna-tiempo"><input type="number" id="custom-dias" min="0" value="7"><label>Días</label></div>
+                    </div>
+                </div>
+
+                <label for="fecha-inicio">¿Cuándo empieza el ciclo?</label>
+                <input type="date" id="fecha-inicio" required>
+
+                <label for="naturaleza">Comportamiento al completar:</label>
+                <select id="naturaleza">
+                    <option value="ciclica">Cíclica (Se reestablece al terminar el ciclo)</option>
+                    <option value="puntual">Puntual (Desaparece al completarse el plazo)</option>
+                </select>
+
+                <label for="prioridad">Prioridad:</label>
+                <select id="prioridad">
+                    <option value="Muy Importante">Muy Importante</option>
+                    <option value="Importante">Importante</option>
+                    <option value="Opcional">Opcional</option>
+                </select>
+
+                <button type="submit" class="btn-principal">Guardar Objetivo</button>
+            </form>
+        </section>
+    </div>
+
+    <nav class="nav-bar">
+        <button class="nav-btn" id="btn-resumen" onclick="cambiarVista('resumen')">
+            <span class="nav-icon">📊</span> Resumen
+        </button>
+        <button class="nav-btn activo" id="btn-progreso" onclick="cambiarVista('progreso')">
+            <span class="nav-icon">📋</span> Progreso
+        </button>
+        <button class="nav-btn" id="btn-nuevo" onclick="cambiarVista('nuevo')">
+            <span class="nav-icon">➕</span> Nuevo
+        </button>
+    </nav>
+
+    <script>
+        let objetivos = [];
+
+        const ordenPrioridad = {
+            'Muy Importante': 1,
+            'Importante': 2,
+            'Opcional': 3
+        };
+
+        // --- SISTEMA DE DATOS (LOCALSTORAGE) ---
+        function cargarDatos() {
+            const datosGuardados = localStorage.getItem('progress_tracker_objetivos');
+            if (datosGuardados) {
+                try {
+                    objetivos = JSON.parse(datosGuardados);
+                } catch (e) {
+                    console.error("Error al leer los datos guardados", e);
+                    objetivos = [];
+                }
+            }
+        }
+
+        function guardarDatos() {
+            localStorage.setItem('progress_tracker_objetivos', JSON.stringify(objetivos));
+        }
+
+        // --- FUNCIONES AUXILIARES DE FECHA (Para historial) ---
+        function obtenerFechaStr(dateObj) {
+            const ano = dateObj.getFullYear();
+            const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const dia = String(dateObj.getDate()).padStart(2, '0');
+            return `${ano}-${mes}-${dia}`;
+        }
+
+        // --- LÓGICA DEL HISTORIAL Y EL BUCLE CATCH-UP ---
+        
+        function registrarHistorial(fechaStr) {
+            let historial = JSON.parse(localStorage.getItem('historial')) || [];
+            
+            // Limitamos a final de este día concreto en el pasado
+            const finDiaMs = new Date(fechaStr + 'T23:59:59.999').getTime();
+            
+            // Evaluamos solo los objetivos que aplicaban en ese día
+            const aplicables = objetivos.filter(obj => {
+                if (obj.prioridad === 'Opcional') return false; 
+                if (obj.fechaInicio && obj.fechaInicio > finDiaMs) return false; 
+                
+                if (obj.frecuenciaRaw === 'Diario') return true; 
+                
+                // Semanales y Personalizados solo se exigen el día que vencen
+                const expiraEseDia = obtenerFechaStr(new Date(obj.fechaExpiracion)) === fechaStr;
+                return expiraEseDia;
+            });
+
+            let porcentaje = 0;
+            let completados = 0;
+            let total = aplicables.length;
+
+            if (total > 0) {
+                completados = aplicables.filter(o => o.progreso >= o.meta).length;
+                porcentaje = Math.round((completados / total) * 100);
+            }
+
+            // Guardar o sobreescribir el historial de este día
+            historial = historial.filter(h => h.fecha !== fechaStr);
+            historial.push({ fecha: fechaStr, porcentaje: porcentaje, completados: completados, total: total });
+            
+            // Límite de seguridad: máximo un año de días guardados
+            if (historial.length > 365) historial = historial.slice(-365);
+            localStorage.setItem('historial', JSON.stringify(historial));
+        }
+
+        function procesarDiasPendientes() {
+            const hoyStr = obtenerFechaStr(new Date());
+            let ultimaFechaStr = localStorage.getItem('ultimaFecha');
+
+            // Primera vez que se usa la app
+            if (!ultimaFechaStr) {
+                localStorage.setItem('ultimaFecha', hoyStr);
+                verificarRelojYExpiraciones(); 
+                return;
+            }
+
+            // Ya se abrió hoy
+            if (ultimaFechaStr === hoyStr) {
+                verificarRelojYExpiraciones();
+                return;
+            }
+
+            // Bucle Catch-up: Han pasado días desde la última vez
+            let fechaPuntero = new Date(ultimaFechaStr + 'T00:00:00');
+            const fechaHoy = new Date(hoyStr + 'T00:00:00');
+            let huboCambioDeDia = false; // Chivato para el modal
+
+            while (fechaPuntero < fechaHoy) {
+                huboCambioDeDia = true;
+                const diaPunteroStr = obtenerFechaStr(fechaPuntero);
+                
+                // 1. Guardamos el historial de ese día con los datos actuales
+                registrarHistorial(diaPunteroStr);
+
+                // 2. Ejecutamos el reseteo de objetivos simulando que estamos al final de ese día
+                const finDiaPunteroMs = new Date(diaPunteroStr + 'T23:59:59.999').getTime();
+                
+                objetivos = objetivos.filter(obj => {
+                    if (finDiaPunteroMs >= obj.fechaExpiracion) {
+                        if (obj.naturaleza === 'ciclica') {
+                            obj.progreso = 0;
+                            obj.progresoPrevio = 0;
+                            // Calculamos la nueva expiración basándonos en el límite de ese día
+                            obj.fechaExpiracion = avanzarCicloExpiracion(obj, finDiaPunteroMs);
+                            return true;
+                        } else {
+                            return false; // Era puntual y expiró ese día, lo eliminamos
+                        }
+                    }
+                    return true;
+                });
+
+                fechaPuntero.setDate(fechaPuntero.getDate() + 1);
+            }
+
+            // Al llegar al presente, hacemos una verificación final por si acaso
+            verificarRelojYExpiraciones();
+            
+            // Actualizamos la fecha de última apertura
+            localStorage.setItem('ultimaFecha', hoyStr);
+            guardarDatos();
+
+            // Si ha pasado al menos un día, mostramos el modal
+            if (huboCambioDeDia) {
+                mostrarResumenAyer();
+            }
+        }
+
+        // --- MOTOR DEL RELOJ Y GESTIÓN DE FECHAS ---
+
+        function calcularExpiracionInicial(frecuenciaRaw, customMeses, customSemanas, customDias, fechaInicioMs) {
+            let fecha = new Date(fechaInicioMs);
+            
+            if (frecuenciaRaw === 'Diario') {
+                // Termina el mismo día (+0 días)
+            } else if (frecuenciaRaw === 'Semanal') {
+                fecha.setDate(fecha.getDate() + 6); // +6 días
+            } else if (frecuenciaRaw === 'Personalizado') {
+                let diasTotales = (customSemanas * 7) + customDias;
+                
+                if (customMeses === 0 && diasTotales === 0) diasTotales = 1;
+
+                if (customMeses > 0) fecha.setMonth(fecha.getMonth() + customMeses);
+                if (diasTotales > 0) fecha.setDate(fecha.getDate() + diasTotales);
+                
+                fecha.setDate(fecha.getDate() - 1);
+            }
+            
+            fecha.setHours(23, 59, 59, 999);
+            return fecha.getTime();
+        }
+
+        function avanzarCicloExpiracion(obj, tiempoLimiteMs) {
+            let fecha = new Date(obj.fechaExpiracion);
+            // Si pasamos un límite, usamos ese. Si no, usamos el tiempo real.
+            const ahora = tiempoLimiteMs || new Date().getTime();
+
+            while (fecha.getTime() <= ahora) {
+                if (obj.frecuenciaRaw === 'Diario') {
+                    fecha.setDate(fecha.getDate() + 1); 
+                } else if (obj.frecuenciaRaw === 'Semanal') {
+                    fecha.setDate(fecha.getDate() + 7); 
+                } else if (obj.frecuenciaRaw === 'Personalizado') {
+                    let meses = obj.datosPersonalizados ? (parseInt(obj.datosPersonalizados.meses) || 0) : 0;
+                    let semanas = obj.datosPersonalizados ? (parseInt(obj.datosPersonalizados.semanas) || 0) : 0;
+                    let dias = obj.datosPersonalizados ? (parseInt(obj.datosPersonalizados.dias) || 0) : 0;
+                    let diasTotales = (semanas * 7) + dias;
+
+                    if (meses === 0 && diasTotales === 0) {
+                        fecha.setDate(fecha.getDate() + 1);
+                    } else {
+                        if (meses > 0) fecha.setMonth(fecha.getMonth() + meses);
+                        if (diasTotales > 0) fecha.setDate(fecha.getDate() + diasTotales);
+                    }
+                } else {
+                    fecha.setDate(fecha.getDate() + 1);
+                }
+            }
+            return fecha.getTime();
+        }
+
+        function verificarRelojYExpiraciones() {
+            const ahora = new Date().getTime();
+            let huboCambios = false;
+
+            objetivos = objetivos.filter(obj => {
+                if (ahora > obj.fechaExpiracion) {
+                    if (obj.naturaleza === 'ciclica') {
+                        obj.progreso = 0;
+                        obj.progresoPrevio = 0;
+                        obj.fechaExpiracion = avanzarCicloExpiracion(obj, ahora);
+                        huboCambios = true;
+                        return true;
+                    } else {
+                        huboCambios = true;
+                        return false; 
+                    }
+                }
+                return true; 
+            });
+
+            if (huboCambios) guardarDatos();
+        }
+
+        function simularPasoDelTiempo() {
+            if (objetivos.length === 0) {
+                alert("Primero crea algún objetivo para probar la simulación.");
+                return;
+            }
+
+            // Engañamos a las expiraciones internas
+            objetivos.forEach(obj => {
+                obj.fechaExpiracion -= (24 * 60 * 60 * 1000);
+                if (obj.fechaInicio) obj.fechaInicio -= (24 * 60 * 60 * 1000);
+            });
+            guardarDatos();
+            
+            // Truco maestro para el historial: Retrocedemos ultimaFecha 1 día
+            // Así al llamar a procesarDiasPendientes creerá que abres la app al día siguiente
+            let ultima = localStorage.getItem('ultimaFecha');
+            if (ultima) {
+                let d = new Date(ultima + 'T00:00:00');
+                d.setDate(d.getDate() - 1);
+                localStorage.setItem('ultimaFecha', obtenerFechaStr(d));
+            }
+
+            procesarDiasPendientes();
+            renderizarHeatmap30Dias();
+            renderizarApp();
+        }
+
+        function formatearTiempoRestante(timestampExpiracion) {
+            const ahora = new Date().getTime();
+            const diferencia = timestampExpiracion - ahora;
+
+            if (diferencia <= 0) return { texto: '¡Expirado!', clase: 'texto-rojo' };
+
+            const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+            const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+            if (dias > 0) {
+                 return { texto: `Expira en ${dias} día(s)`, clase: 'texto-verde' };
+            } else {
+                 return { texto: `Expira hoy en ${horas} hora(s)`, clase: (horas < 5 ? 'texto-rojo' : 'texto-naranja') };
+            }
+        }
+
+        function establecerFechaHoyInput() {
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            const inputFecha = document.getElementById('fecha-inicio');
+            if (inputFecha) inputFecha.value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        // --- NAVEGACIÓN Y VISTAS ---
+        function cambiarVista(vistaDestino) {
+            document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('activo'));
+            
+            document.getElementById(`vista-${vistaDestino}`).classList.add('activa');
+            document.getElementById(`btn-${vistaDestino}`).classList.add('activo');
+        }
+
+        function cambiarTipoObjetivo() {
+            document.getElementById('caja-cantidad-meta').style.display = 
+                (document.getElementById('tipo').value === 'una_vez') ? 'none' : 'block';
+        }
+        function cambiarFrecuencia() {
+            document.getElementById('caja-plazo-custom').style.display = 
+                (document.getElementById('frecuencia').value === 'Personalizado') ? 'block' : 'none';
+        }
+
+        // --- CREACIÓN DE OBJETIVOS ---
+        document.getElementById('form-objetivo').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            let frecSelec = document.getElementById('frecuencia').value;
+            let meses = 0, semanas = 0, dias = 0;
+            let frecuenciaRaw = document.getElementById('frecuencia').value;
+            
+            if (frecuenciaRaw === 'Personalizado') {
+                meses = parseInt(document.getElementById('custom-meses').value) || 0;
+                semanas = parseInt(document.getElementById('custom-semanas').value) || 0;
+                dias = parseInt(document.getElementById('custom-dias').value) || 0;
+                
+                if (meses === 0 && semanas === 0 && dias === 0) {
+                    alert("Por favor, indica al menos 1 día, semana o mes para la frecuencia personalizada.");
+                    return;
+                }
+
+                let partes = [];
+                if (meses > 0) partes.push(`${meses} mes(es)`);
+                if (semanas > 0) partes.push(`${semanas} sem(s)`);
+                if (dias > 0) partes.push(`${dias} día(s)`);
+                frecSelec = `Personalizado (${partes.join(', ')})`;
+            }
+
+            const fechaInicioInput = document.getElementById('fecha-inicio').value;
+            const partesFecha = fechaInicioInput.split('-');
+            const fechaInicioMs = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2], 0, 0, 0, 0).getTime();
+
+            const tipoObj = document.getElementById('tipo').value;
+            
+            let timestampExpiracion = calcularExpiracionInicial(frecuenciaRaw, meses, semanas, dias, fechaInicioMs);
+            const ahoraMs = new Date().getTime();
+
+            if (timestampExpiracion <= ahoraMs) {
+                const objTemporal = {
+                    fechaExpiracion: timestampExpiracion,
+                    frecuenciaRaw: frecuenciaRaw,
+                    datosPersonalizados: { meses, semanas, dias }
+                };
+                timestampExpiracion = avanzarCicloExpiracion(objTemporal, ahoraMs);
+            }
+            
+            const nuevoObjetivo = {
+                id: Date.now(),
+                nombre: document.getElementById('nombre').value,
+                tipo: tipoObj,
+                meta: tipoObj === 'una_vez' ? 1 : parseInt(document.getElementById('cantidad').value),
+                progreso: 0,
+                progresoPrevio: 0,
+                frecuenciaRaw: frecuenciaRaw,
+                frecuenciaTexto: frecSelec,
+                datosPersonalizados: { meses, semanas, dias },
+                fechaInicio: fechaInicioMs,
+                fechaExpiracion: timestampExpiracion,
+                naturaleza: document.getElementById('naturaleza').value,
+                prioridad: document.getElementById('prioridad').value
+            };
+
+            objetivos.push(nuevoObjetivo);
+            guardarDatos();
+            
+            document.getElementById('form-objetivo').reset();
+            establecerFechaHoyInput();
+            cambiarTipoObjetivo(); cambiarFrecuencia();
+            
+            cambiarVista('progreso');
+            renderizarApp();
+        });
+
+        // --- LÓGICA DE PROGRESO Y RENDERIZADO ---
+        function modificarProgreso(id, cantidad) {
+            const obj = objetivos.find(o => o.id === id);
+            if (!obj) return;
+
+            if (obj.tipo === 'una_vez') {
+                obj.progreso = (obj.progreso === 0) ? 1 : 0;
+            } else {
+                if (obj.progreso >= obj.meta && cantidad > 0) {
+                    obj.progreso = obj.progresoPrevio; 
+                } else {
+                    if (cantidad > 0) obj.progresoPrevio = obj.progreso;
+                    
+                    obj.progreso += cantidad;
+                    if (obj.progreso > obj.meta) obj.progreso = obj.meta;
+                    if (obj.progreso < 0) obj.progreso = 0;
+                }
+            }
+            guardarDatos();
+            renderizarApp();
+        }
+
+        function eliminarObjetivo(id) {
+            const obj = objetivos.find(o => o.id === id);
+            if (!confirm(`¿Seguro que quieres eliminar "${obj.nombre}"?`)) return;
+            objetivos = objetivos.filter(o => o.id !== id);
+            guardarDatos();
+            renderizarApp();
+        }
+
+        function renderizarApp() {
+            const lista = document.getElementById('lista-objetivos');
+            lista.innerHTML = '';
+            const ahoraMs = new Date().getTime();
+
+            if (objetivos.length === 0) {
+                lista.innerHTML = '<li style="text-align:center; color:#8e8e93;">No hay objetivos. ¡Ve a "Nuevo" para empezar!</li>';
+                actualizarPorcentajeGlobal();
+                return;
+            }
+
+            const objetivosOrdenados = [...objetivos].sort((a, b) => {
+                const prioA = ordenPrioridad[a.prioridad] || 99;
+                const prioB = ordenPrioridad[b.prioridad] || 99;
+                if (prioA !== prioB) return prioA - prioB;
+                return a.fechaExpiracion - b.fechaExpiracion;
+            });
+
+            objetivosOrdenados.forEach(obj => {
+                const li = document.createElement('li');
+                const estaCompleto = obj.progreso >= obj.meta;
+                const esUnaVez = obj.tipo === 'una_vez';
+                const etiquetaNat = obj.naturaleza === 'ciclica' ? '🔄' : '🎯';
+                
+                const estaEnElFuturo = obj.fechaInicio && obj.fechaInicio > ahoraMs;
+
+                let tiempoRestante = formatearTiempoRestante(obj.fechaExpiracion);
+                if (estaEnElFuturo) {
+                    const fInicio = new Date(obj.fechaInicio);
+                    tiempoRestante = { texto: `⏳ Empieza el ${fInicio.toLocaleDateString()}`, clase: 'texto-naranja' };
+                }
+
+                let textoProg = esUnaVez ? (estaCompleto ? '¡Hecho!' : '1 (Pendiente)') : `${obj.progreso} / ${obj.meta} ${obj.tipo === 'tiempo' ? 'min' : ''}`;
+
+                let controlesHTML = '';
+                if (estaEnElFuturo) {
+                    controlesHTML = `<span class="texto-gris" style="display:block; margin-top:10px;">El ciclo aún no ha comenzado</span>`;
+                } else {
+                    if (esUnaVez) {
+                        controlesHTML = `<button type="button" class="btn-accion" style="background-color: ${estaCompleto ? '#34c759' : '#007aff'}" onclick="modificarProgreso(${obj.id}, 1)">${estaCompleto ? '¡Completado! (Deshacer)' : 'Marcar como Hecho'}</button>`;
+                    } else {
+                        let inputManual = obj.tipo === 'tiempo' && !estaCompleto ? `<input type="number" class="input-pequeno" id="input-${obj.id}" value="10" min="1" max="${obj.meta - obj.progreso}">` : '';
+                        let btnSumar = `<button type="button" class="btn-accion" style="background-color: ${estaCompleto ? '#34c759' : '#007aff'}" onclick="aplicarInputManual(${obj.id})">${estaCompleto ? '¡Completado! (Deshacer)' : (obj.tipo === 'tiempo' ? 'Sumar' : 'Sumar +1')}</button>`;
+                        let btnRestar = !estaCompleto ? `<button type="button" class="btn-accion btn-restar" onclick="restarInputManual(${obj.id})">- Restar</button>` : '';
+                        controlesHTML = inputManual + btnSumar + btnRestar;
+                    }
+                }
+
+                li.innerHTML = `
+                    <button class="btn-accion btn-eliminar" onclick="eliminarObjetivo(${obj.id})">Borrar</button>
+                    <strong>${obj.nombre}</strong> (${obj.prioridad} - ${obj.frecuenciaTexto} | ${etiquetaNat})<br>
+                    <span class="${tiempoRestante.clase}">${tiempoRestante.texto}</span><br>
+                    <span class="texto-gris">Progreso: ${textoProg}</span><br>
+                    <div class="contenedor-controles">${controlesHTML}</div>
+                `;
+                lista.appendChild(li);
+            });
+
+            actualizarPorcentajeGlobal();
+        }
+
+        function aplicarInputManual(id) {
+            const obj = objetivos.find(o => o.id === id);
+            let cantidad = 1;
+            if (obj.tipo === 'tiempo' && obj.progreso < obj.meta) {
+                const input = document.getElementById(`input-${id}`);
+                if (input) cantidad = parseInt(input.value) || 0;
+            }
+            modificarProgreso(id, cantidad);
+        }
+
+        function restarInputManual(id) {
+            const obj = objetivos.find(o => o.id === id);
+            let cantidad = 1;
+            if (obj.tipo === 'tiempo') {
+                const input = document.getElementById(`input-${id}`);
+                if (input) cantidad = parseInt(input.value) || 0;
+            }
+            modificarProgreso(id, -cantidad);
+        }
+
+        function actualizarPorcentajeGlobal() {
+            const ahora = new Date();
+            const hoyStr = obtenerFechaStr(ahora);
+            const ahoraMs = ahora.getTime();
+
+            // Filtro estricto idéntico al del resumen diario/historial
+            const objetivosContables = objetivos.filter(o => {
+                if (o.prioridad === 'Opcional') return false;
+                if (o.fechaInicio && o.fechaInicio > ahoraMs) return false;
+
+                // Los diarios cuentan todos los días
+                if (o.frecuenciaRaw === 'Diario') return true;
+
+                // Los semanales o personalizados SOLO cuentan si expiran exactamente hoy
+                const expiraHoy = obtenerFechaStr(new Date(o.fechaExpiracion)) === hoyStr;
+                return expiraHoy;
+            });
+
+            const total = objetivosContables.length;
+            let porcentaje = 0, completados = 0;
+            
+            if (total > 0) {
+                completados = objetivosContables.filter(o => o.progreso >= o.meta).length;
+                porcentaje = Math.round((completados / total) * 100);
+            }
+
+            document.getElementById('progreso-barra').style.width = `${porcentaje}%`;
+            document.getElementById('progreso-texto').innerText = `${porcentaje}% Completado`;
+
+            document.getElementById('resumen-circulo').style.background = `conic-gradient(#34c759 ${porcentaje}%, #e5e5ea ${porcentaje}%)`;
+            document.getElementById('resumen-texto-porcentaje').innerText = `${porcentaje}%`;
+            document.getElementById('resumen-texto-contador').innerText = `${completados} / ${total} completados`;
+
+            let frase = "Añade objetivos activos para ver tu progreso.";
+            if (total > 0) {
+                if (porcentaje === 0) frase = "¡Un nuevo ciclo! Empieza con energía.";
+                else if (porcentaje < 50) frase = "¡Buen trabajo! Cada pequeño paso cuenta.";
+                else if (porcentaje < 100) frase = "¡Ya casi lo tienes! Sigue así, no te rindas.";
+                else frase = "¡Increíble! Has completado todas tus metas.";
+            }
+            document.getElementById('frase-texto').innerText = frase;
+        }
+
+        // --- MAPA DE CALOR E HISTORIAL ---
+        function renderizarHeatmap30Dias() {
+            const contenedor = document.getElementById('grid-30-dias');
+            if (!contenedor) return;
+            contenedor.innerHTML = '';
+
+            const historial = JSON.parse(localStorage.getItem('historial')) || [];
+            const mapaHistorial = {};
+            historial.forEach(h => mapaHistorial[h.fecha] = h.porcentaje);
+
+            // Últimos 30 días, hasta AYER (el histórico registra días ya cerrados)
+            for (let i = 30; i >= 1; i--) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                let fechaStr = obtenerFechaStr(d);
+                
+                let porcentaje = mapaHistorial[fechaStr];
+                let claseNivel = 'nivel-0';
+
+                if (porcentaje !== undefined) {
+                    if (porcentaje >= 90) claseNivel = 'nivel-alto';
+                    else if (porcentaje >= 50) claseNivel = 'nivel-medio';
+                    else if (porcentaje >= 0) claseNivel = 'nivel-bajo';
+                }
+
+                let cuadrado = document.createElement('div');
+                cuadrado.className = `dia-square ${claseNivel}`;
+                cuadrado.title = `${fechaStr}: ${porcentaje !== undefined ? porcentaje + '%' : 'Sin datos'}`;
+                contenedor.appendChild(cuadrado);
+            }
+        }
+
+        function abrirModalHistorial() {
+            document.getElementById('modal-historial').style.display = 'block';
+            const contenedor = document.getElementById('grid-365-dias');
+            contenedor.innerHTML = '';
+
+            const historial = JSON.parse(localStorage.getItem('historial')) || [];
+            const mapaHistorial = {};
+            historial.forEach(h => mapaHistorial[h.fecha] = h.porcentaje);
+
+            for (let i = 365; i >= 1; i--) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                let fechaStr = obtenerFechaStr(d);
+                let porcentaje = mapaHistorial[fechaStr];
+                let claseNivel = 'nivel-0';
+
+                if (porcentaje !== undefined) {
+                    if (porcentaje >= 90) claseNivel = 'nivel-alto';
+                    else if (porcentaje >= 50) claseNivel = 'nivel-medio';
+                    else if (porcentaje >= 0) claseNivel = 'nivel-bajo';
+                }
+
+                let cuadrado = document.createElement('div');
+                cuadrado.className = `dia-square ${claseNivel}`;
+                cuadrado.title = `${fechaStr}: ${porcentaje !== undefined ? porcentaje + '%' : 'Sin datos'}`;
+                contenedor.appendChild(cuadrado);
+            }
+        }
+
+        function cerrarModalHistorial() {
+            document.getElementById('modal-historial').style.display = 'none';
+        }
+
+        // --- MODAL DE RESUMEN DE AYER ---
+        function mostrarResumenAyer() {
+            const historial = JSON.parse(localStorage.getItem('historial')) || [];
+            if (historial.length === 0) return;
+
+            // Cogemos el último día registrado (ayer)
+            const datosAyer = historial[historial.length - 1]; 
+            
+            // Formatear la fecha para que quede bonita
+            document.getElementById('texto-fecha-ayer').innerText = `Día cerrado: ${datosAyer.fecha}`;
+            
+            const porcentaje = datosAyer.porcentaje || 0;
+            const completados = datosAyer.completados || 0;
+            const total = datosAyer.total || 0;
+
+            // Pintar la ruleta
+            document.getElementById('ayer-circulo').style.background = `conic-gradient(#34c759 ${porcentaje}%, #e5e5ea ${porcentaje}%)`;
+            document.getElementById('ayer-texto-porcentaje').innerText = `${porcentaje}%`;
+            document.getElementById('ayer-texto-contador').innerText = `${completados} / ${total} completados`;
+
+            // Frase dinámica según cómo fue el día
+            let frase = "Ayer no tenías objetivos activos.";
+            if (total > 0) {
+                if (porcentaje === 0) frase = "Ayer fue un día de descanso (o de olvido). ¡Hoy a tope!";
+                else if (porcentaje < 50) frase = "Hiciste parte del trabajo. ¡Hoy a mejorarlo!";
+                else if (porcentaje < 100) frase = "¡Estuviste muy cerca! Gran esfuerzo.";
+                else frase = "¡Día perfecto! Cerraste todos tus objetivos.";
+            }
+            document.getElementById('ayer-frase-texto').innerText = frase;
+
+            // Mostrar el modal
+            document.getElementById('modal-resumen-ayer').style.display = 'block';
+        }
+
+        function cerrarResumenAyer() {
+            document.getElementById('modal-resumen-ayer').style.display = 'none';
+        }
+
+        // --- ARRANQUE DE LA APLICACIÓN ---
+        window.onload = function() {
+            cargarDatos();
+            establecerFechaHoyInput();
+            procesarDiasPendientes(); // Este bucle genera el historial y actualiza las tareas caducadas automáticamente
+            renderizarHeatmap30Dias();
+            renderizarApp();
+        };
+    </script>
+</body>
+</html>
