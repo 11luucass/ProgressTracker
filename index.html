@@ -197,11 +197,10 @@
             <button class="btn-principal" style="margin-top: 20px;" onclick="cerrarResumenAyer()">Empezar mi día</button>
         </div>
     </div>
-
     <div id="vista-progreso" class="vista activa">
         <h1>Mis Objetivos</h1>
         <section>
-            <button type="button" class="btn-debug" onclick="simularPasoDelTiempo()">⏳ Simular Avanzar 1 Día (+24h)</button>
+            <button id="btn-simular-dia" type="button" class="btn-debug" onclick="simularPasoDelTiempo()">⏳ Simular Avanzar 1 Día (+24h)</button>
 
             <div class="texto-porcentaje" id="progreso-texto">0% Completado</div>
             <div class="contenedor-barra"><div class="barra-relleno" id="progreso-barra"></div></div>
@@ -995,6 +994,16 @@
                 navigator.serviceWorker.register('sw.js')
                     .then(() => console.log('Service Worker registrado con éxito'))
                     .catch(err => console.log('Error al registrar Service Worker:', err));
+            }
+
+            const parametrosURL = new URLSearchParams(window.location.search);
+            const modoDev = parametrosURL.get('dev') === 'true';
+
+            if (!modoDev) {
+                const boton = document.getElementById('btn-simular-dia');
+                if (boton) {
+                    boton.remove(); // Borra el botón del navegador
+                }
             }
 
             cargarDatos();
